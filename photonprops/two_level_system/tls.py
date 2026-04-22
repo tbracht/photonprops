@@ -4,7 +4,19 @@ from photonprops.commons.pulse import ChirpedPulse
 
 HBAR = 0.6582173  # meV*ps
 
-def twolevel_system(tau1=1, tau2=1, area1=1*np.pi, area2=0, det1=0, det2=0, alpha1=0, alpha2=0, delay=1, gamma_e=1/100, epsilon=0.01, dt_1=0.1, dt_2=1, options=qt.Options(atol=1e-7), mode="pop", tend=None):
+def twolevel_system_pulses(tau1=1, tau2=1, area1=1*np.pi, area2=0, det1=0, det2=0, alpha1=0, alpha2=0, delay=1, gamma_e=1/100, epsilon=0.01, dt_1=0.1, dt_2=1, options={"atol":1e-7}, mode="pop", tend=None):
+    # pulse 1 and 2, right now assume delay > 0
+    tau11=np.sqrt(alpha1**2 / tau1**2 + tau1**2)
+    tau22=np.sqrt(alpha2**2 / tau2**2 + tau2**2)
+    # choose the longer of the two
+    t_start1 = 4*tau11 if tau11 > tau22 else 4*tau22
+    # further delay pulse 2
+    t_start2 = t_start1 + delay
+    pulse1 = ChirpedPulse(tau1, det1, alpha1, t0=t_start1, e0=area1)
+    pulse2 = ChirpedPulse(tau2, det2, alpha2, t0=t_start2, e0=area2)
+    return twolevel_system(pulse1, pulse2, gamma_e=gamma_e, epsilon=epsilon, dt_1=dt_1, dt_2=dt_2, options=options, mode=mode, tend=tend)
+
+def twolevel_system(pulse1, pulse2, gamma_e=1/100, epsilon=0.01, dt_1=0.1, dt_2=1, options={"atol":1e-7}, mode="pop", tend=None):
     """
     in qutip, every energy has to be provided in 1/ps
     Here, a rotating frame with the unsplit exciton energy is chosen. 
@@ -43,16 +55,6 @@ def twolevel_system(tau1=1, tau2=1, area1=1*np.pi, area2=0, det1=0, det2=0, alph
     E_X = 0.0  # exciton energy in rotating frame
     H_sys = E_X * n_x
 
-    # pulse 1 and 2, right now assume delay > 0
-    tau11=np.sqrt(alpha1**2 / tau1**2 + tau1**2)
-    tau22=np.sqrt(alpha2**2 / tau2**2 + tau2**2)
-    # choose the longer of the two
-    t_start1 = 4*tau11 if tau11 > tau22 else 4*tau22
-    # further delay pulse 2
-    t_start2 = t_start1 + delay
-    pulse1 = ChirpedPulse(tau1, det1, alpha1, t0=t_start1, e0=area1)
-    pulse2 = ChirpedPulse(tau2, det2, alpha2, t0=t_start2, e0=area2)
-
     # excitation Hamiltonians (daggered, as expressed by polarization operators)
     H_x_dag = -0.5 * p_gx  # this has to be paired with the conjugated total x-field 
     # print(H_x_dag.dag())
@@ -63,7 +65,7 @@ def twolevel_system(tau1=1, tau2=1, area1=1*np.pi, area2=0, det1=0, det2=0, alph
     # time axes. has to start at 0 due to limitations in the function calculating the 2-time quantities
     # two different time steps are used: a small dt_1, during the time the pulses are active, and a larger dt_2 during the decay 
     # time axis during the pulses
-    t_off = t_start2 + t_start1  # time window where pulse 1 or 2 is still active
+    t_off = pulse1.t0 + pulse2.t0  # time window where pulse 1 or 2 is still active
     rate = gamma_e
     t_end = t_off - 1/rate *np.log(epsilon)  # note that log(epsilon) is in general negative
     t_axis1 = np.arange(0, t_off, dt_1)

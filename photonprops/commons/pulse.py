@@ -84,8 +84,8 @@ class CWLaser(Pulse):
     cw-laser, i.e., it is just on the whole time without any switch-on process
     """
 
-    def __init__(self, e0, e_start=0, polar_x=1):
-        super().__init__(tau=5, e_start=e_start, e0=e0, polar_x=polar_x)
+    def __init__(self, amplitude, detuning=0, polar_x=1):
+        super().__init__(tau=5, e_start=detuning, e0=amplitude, polar_x=polar_x)
 
     def get_envelope(self, t):
         return self.e0
