@@ -91,23 +91,23 @@ def twolevel_system(pulse1, pulse2, gamma_e=1/100, epsilon=0.01, dt_1=0.1, dt_2=
         # Expectationvalue of the occupation to calculate the Brightness
         # which we need for normalization
         n_ex = qt.mesolve(H, g, t_axis, c_ops, e_ops=[_n], options=options).expect[0]
-        brightness = gamma_e * np.trapz(n_ex, t_axis)
+        brightness = gamma_e * np.trapezoid(n_ex, t_axis)
 
         # two-time correlation
         G2_t_tau = gamma_e ** 2 * qt.correlation_3op_2t(H, g, t_axis, tau_axis, c_ops, a_op, b_op, c_op, solver='me',
                                                       options=options)
-        G2_tau = np.abs(np.trapz(G2_t_tau.transpose(), t_axis))
+        G2_tau = np.abs(np.trapezoid(G2_t_tau.transpose(), t_axis))
         g2_tau = G2_tau / brightness**2
 
-        g2 = 2 * np.abs(np.trapz(g2_tau, tau_axis))
+        g2 = 2 * np.abs(np.trapezoid(g2_tau, tau_axis))
 
         a_op = sm.dag()
         b_op = sm
         # estimate for the Indistinguishability, assuming g2 is negligible. See https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.128.093603, Suppl. Material
         G1_t_tau = qt.correlation_2op_2t(H, g, t_axis, tau_axis, c_ops, a_op, b_op, solver='me',
                                                       options=options)
-        G1_tau = np.trapz(np.abs(G1_t_tau.transpose())**2, t_axis)
-        g1 = 2 * gamma_e**2 * np.trapz(G1_tau, tau_axis) / brightness**2                            
+        G1_tau = np.trapezoid(np.abs(G1_t_tau.transpose())**2, t_axis)
+        g1 = 2 * gamma_e**2 * np.trapezoid(G1_tau, tau_axis) / brightness**2                            
         return brightness, g1, g2
     else:
         print("unsupported mode. choose pop or g2")
